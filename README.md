@@ -26,7 +26,7 @@ Powered by hybrid retrieval (BM25 + embeddings), cross-encoder reranking, and yo
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USER/obsidian_recall.git
+git clone https://github.com/LXW1205/obsidian_recall.git
 cd obsidian_recall
 
 cp .env.example .env
