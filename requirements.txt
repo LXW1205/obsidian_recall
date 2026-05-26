@@ -1,0 +1,9 @@
+google-genai
+chromadb
+watchdog
+streamlit
+python-dotenv
+markdown
+sentence-transformers
+requests
+pytest

@@ -1,0 +1,9 @@
+.env
+data/
+backups/
+__pycache__/
+*.pyc
+app/chroma/
+.DS_Store
+*.egg-info/
+.pytest_cache/

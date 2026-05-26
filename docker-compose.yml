@@ -1,0 +1,42 @@
+version: '3.8'
+
+volumes:
+  vault_data:
+    driver: local
+
+services:
+  obsidian-recall:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data/chroma:/app/chroma
+      - vault_data:/app/notes
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - opencode
+
+  opencode:
+    image: ghcr.io/anomalyco/opencode
+    command: ["opencode", "serve", "--port", "4096", "--hostname", "0.0.0.0"]
+    ports:
+      - "4096:4096"
+    restart: unless-stopped
+
+  rclone-sync:
+    image: rclone/rclone
+    entrypoint: |
+      sh -c "
+      echo 'Starting rclone sync loop (every 5 minutes)...'
+      while true; do
+        rclone sync gdrive:obsidian-vault /data/vault --fast-list 2>&1
+        echo 'Sync complete. Sleeping 300s...'
+        sleep 300
+      done
+      "
+    volumes:
+      - vault_data:/data/vault
+      - ~/.config/rclone:/config/rclone
+    restart: unless-stopped
