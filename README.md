@@ -4,6 +4,8 @@ Self-hosted RAG pipeline for your Obsidian vault. Ask questions in natural langu
 
 Powered by hybrid retrieval (BM25 + local embeddings), cross-encoder reranking, and your choice of LLM provider — Gemini Flash Lite (free tier) or opencode-Go.
 
+![System Preview](screenshots/recall-mode.png)
+
 ---
 
 ## Features
@@ -22,6 +24,8 @@ Powered by hybrid retrieval (BM25 + local embeddings), cross-encoder reranking, 
 - **Docker Compose stack** — app + opencode server + rclone sync sidecar
 
 ---
+
+![System Preview](screenshots/insufficient-context.png)
 
 ## Quick Start
 
