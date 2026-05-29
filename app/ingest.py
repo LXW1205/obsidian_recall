@@ -22,9 +22,9 @@ VAULT_PATH = os.getenv("VAULT_PATH", "/app/notes")
 CHROMA_PATH = os.getenv("CHROMA_PATH", "/app/chroma")
 HASH_FILE = os.path.join(CHROMA_PATH, "index_hashes.json")
 
-EMBEDDING_MODEL = "text-embedding-004"
+EMBEDDING_MODEL = "gemini-embedding-001"
 
-# Lazy Google AI client initialization
+# Lazy Google AI client initialization (used for LLM, not embeddings)
 _google_client = None
 
 
@@ -34,6 +34,18 @@ def get_google_client():
     if _google_client is None:
         _google_client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
     return _google_client
+
+# Local embedding model (sentence-transformers, no API key needed)
+_embedder = None
+
+
+def get_embedder():
+    """Get or create the local embedding model (lazy)."""
+    global _embedder
+    if _embedder is None:
+        from sentence_transformers import SentenceTransformer
+        _embedder = SentenceTransformer("all-MiniLM-L6-v2")
+    return _embedder
 
 # Initialize ChromaDB
 chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
@@ -150,13 +162,13 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[tupl
 
 
 def get_embedding(text: str) -> list[float]:
-    """Generate embedding for a text chunk using Google text-embedding-004."""
-    client = get_google_client()
-    result = client.models.embed_content(
-        model=EMBEDDING_MODEL,
-        contents=text,
-    )
-    return result.embeddings[0].values
+    """Generate embedding for a single text chunk using local model."""
+    return get_embedder().encode(text).tolist()
+
+
+def get_embeddings_batch(texts: list[str]) -> list[list[float]]:
+    """Generate embeddings for multiple texts in one batch."""
+    return get_embedder().encode(texts).tolist()
 
 
 def delete_file_chunks(filepath: str):
@@ -218,10 +230,15 @@ def index_file(filepath: str, force: bool = False) -> dict:
             "section": section,
         })
 
-    # Generate embeddings
+    # Generate embeddings (batched to stay within API rate limits)
+    import time
+    BATCH_SIZE = 50
     embeddings = []
-    for chunk_text_content in chunk_texts:
-        embeddings.append(get_embedding(chunk_text_content))
+    for i in range(0, len(chunk_texts), BATCH_SIZE):
+        batch = chunk_texts[i:i + BATCH_SIZE]
+        embeddings.extend(get_embeddings_batch(batch))
+        if i + BATCH_SIZE < len(chunk_texts):
+            time.sleep(2)  # Stay within rate limits
 
     collection.add(
         ids=chunk_ids,
@@ -236,7 +253,7 @@ def index_file(filepath: str, force: bool = False) -> dict:
 
     return {
         "success": True,
-        "chunks": len(chunks),
+        "chunks": len(chunk_texts),
         "filepath": relative_path,
     }
 

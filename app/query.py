@@ -42,7 +42,7 @@ Always cite which note(s) your answer came from using inline citations. \
 Never make up information not present in the context. \
 You may also use the "Additional context" section which contains user preferences and recently accessed notes."""
 
-MODEL_NAME = "gemini-1.5-flash"
+MODEL_NAME = "gemini-flash-lite-latest"
 TOP_K = 5
 RERANK_CANDIDATES = 20  # Get more candidates, rerank, then return top_k
 CONFIDENCE_THRESHOLD = 0.3  # Minimum score to consider retrieval confident
@@ -76,7 +76,7 @@ class HybridRetriever:
                 "source": meta.get("source", "Unknown"),
                 "section": meta.get("section", ""),
                 "text": doc,
-                "embedding": all_docs["embeddings"][i] if all_docs["embeddings"] else None,
+                "embedding": all_docs["embeddings"][i] if all_docs["embeddings"] is not None and len(all_docs["embeddings"]) > 0 else None,
             }
             self.chunks.append(chunk)
             self.bm25_index.add_document(chunk["chunk_id"], doc)
@@ -140,8 +140,8 @@ class HybridRetriever:
         query_embedding = get_embedding(query)
         embedding_scores = []
         for idx, chunk in enumerate(active_chunks):
-            if chunk.get("embedding"):
-                sim = self._cosine_similarity(query_embedding, chunk["embedding"])
+            if chunk.get("embedding") is not None:
+                sim = max(0.0, self._cosine_similarity(query_embedding, chunk["embedding"]))
                 embedding_scores.append((idx, sim))
             else:
                 embedding_scores.append((idx, 0.0))

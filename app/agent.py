@@ -66,7 +66,7 @@ Response format — return ONLY valid JSON, no markdown, no explanation:
 If the instruction is unclear or cannot be completed with available tools, return:
 [{"tool": "error", "args": {}, "description": "Explanation of why the task cannot be completed"}]"""
 
-MODEL_NAME = "gemini-1.5-flash"
+MODEL_NAME = "gemini-flash-lite-latest"
 
 
 def backup_vault(vault_path: str = None, backup_dir: str = None) -> dict:

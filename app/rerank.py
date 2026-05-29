@@ -53,15 +53,11 @@ def rerank_results(
     # Sort by rerank score descending
     reranked = sorted(candidates, key=lambda x: x["rerank_score"], reverse=True)
 
-    # Update ranks and return top_k
-    results = []
+    # Update ranks, keep original score (already in [0,1] from hybrid retrieval)
     for rank, candidate in enumerate(reranked[:top_k], start=1):
         candidate["rank"] = rank
-        # Use rerank score as the primary score
-        candidate["score"] = candidate["rerank_score"]
-        results.append(candidate)
 
-    return results
+    return reranked[:top_k]
 
 
 def is_available() -> bool:

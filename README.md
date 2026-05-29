@@ -2,7 +2,7 @@
 
 Self-hosted RAG pipeline for your Obsidian vault. Ask questions in natural language and get answers grounded in your notes with inline citations and confidence scores. Automate vault management with a confirmation-gated agent.
 
-Powered by hybrid retrieval (BM25 + embeddings), cross-encoder reranking, and your choice of LLM provider — Gemini 1.5 Flash or opencode-Go.
+Powered by hybrid retrieval (BM25 + local embeddings), cross-encoder reranking, and your choice of LLM provider — Gemini Flash Lite (free tier) or opencode-Go.
 
 ---
 
@@ -14,7 +14,7 @@ Powered by hybrid retrieval (BM25 + embeddings), cross-encoder reranking, and yo
 - **Confidence thresholds** — rejects low-confidence retrieval early to prevent hallucination
 - **Metadata filtering** — filter by folder path and tags from the sidebar
 - **Incremental indexing** — MD5 hash tracking; only re-indexes changed files
-- **LLM provider switching** — swap between Gemini 1.5 Flash (free tier) and opencode-Go (sk-key auth) with one env var
+- **LLM provider switching** — swap between Gemini Flash Lite (free tier) and opencode-Go (sk-key auth) with one env var
 - **Auto-reindex** — optional watchdog file watcher picks up vault changes in real time
 - **12 agent tools** — read, create, edit, rename, move, merge, add_tag, delete, find_duplicates, find_broken_links, search_notes
 - **Automatic vault backups** — agent sessions snapshot your vault before any writes
@@ -37,7 +37,7 @@ docker compose up -d
 
 Open **http://localhost:8501** in your browser.
 
-> The first query will download the cross-encoder reranker model (~90 MB). Subsequent queries are fast.
+> The first query downloads two models: the embedding model `all-MiniLM-L6-v2` (~90 MB) and the cross-encoder reranker `ms-marco-MiniLM-L-6-v2` (~90 MB). Subsequent queries are fast. Set `HF_TOKEN` in `.env` for faster Hugging Face downloads.
 
 ---
 
@@ -47,7 +47,8 @@ Copy `.env.example` to `.env` and configure:
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `GOOGLE_API_KEY` | Yes | — | Google AI Studio key (embeddings + Gemini fallback) |
+| `GOOGLE_API_KEY` | Yes | — | Google AI Studio key (Gemini LLM) |
+| `HF_TOKEN` | No | — | Hugging Face token (faster model downloads) |
 | `LLM_PROVIDER` | No | `gemini` | `gemini` or `opencode` |
 | `OPENCODE_URL` | No | `http://opencode:4096` | Opencode server URL |
 | `OPENCODE_PROVIDER` | No | `opencode-go` | Provider ID from your opencode account |
@@ -57,7 +58,7 @@ Copy `.env.example` to `.env` and configure:
 
 ### LLM Provider Options
 
-**Gemini (default, free):**
+**Gemini (default, free tier):**
 ```env
 LLM_PROVIDER=gemini
 GOOGLE_API_KEY=AIza...
@@ -193,7 +194,8 @@ obsidian_recall/
 ├── data/chroma/               # ChromaDB persistence (gitignored)
 ├── backups/                   # Agent mode vault backups (gitignored)
 ├── docker-compose.yml         # obsidian-recall + opencode + rclone-sync
-├── Dockerfile                 # python:3.11-slim image
+├── Dockerfile                 # python:3.11-slim image with tests
+├── screenshots/               # README screenshots (see below)
 ├── requirements.txt           # Python dependencies
 ├── .env.example               # Configuration template
 ├── .gitignore
@@ -205,9 +207,9 @@ obsidian_recall/
 ## Dependencies
 
 - **Python 3.11** (slim Docker image)
-- **Google Gemini API** — `text-embedding-004` for embeddings, `gemini-1.5-flash` as fallback LLM
+- **Google Gemini API** — `gemini-flash-lite-latest` as the default LLM (free tier)
 - **ChromaDB** — vector store for embedding persistence
-- **sentence-transformers** — `cross-encoder/ms-marco-MiniLM-L-6-v2` for reranking
+- **sentence-transformers** — `all-MiniLM-L6-v2` for local embeddings, `cross-encoder/ms-marco-MiniLM-L-6-v2` for reranking
 - **Streamlit** — browser UI
 - **opencode-Go** — optional LLM provider (sk-key auth)
 - **rclone** — optional Google Drive sync sidecar
@@ -241,8 +243,8 @@ docker run --rm -it \
   rclone/rclone config
 ```
 
-Create a remote named `gdrive` pointing to your Obsidian vault folder.
-Edit the remote name and folder path in `docker-compose.yml` if they differ from `gdrive:obsidian-vault`.
+Create a remote named `gdrive` pointing to your Obsidian vault folder.  
+Edit the remote name and folder path in `docker-compose.yml` if they differ from `gdrive:YOUR_FOLDER_NAME`.
 
 4. **Start the stack:**
 
@@ -253,6 +255,17 @@ docker compose up -d
 5. **Access the UI** at `http://your-server:8501`
 
 The `rclone-sync` container syncs from Google Drive every 5 minutes. ChromaDB and backups persist inside the `data/` directory.
+
+---
+
+## Screenshots
+
+| Screen | Description |
+|---|---|
+| `screenshots/recall-mode.png` | Recall Mode with a grounded answer, confidence score, inline citations, and sidebar filters |
+| `screenshots/insufficient-context.png` | Low-confidence query showing `insufficient_context` label |
+| `screenshots/agent-mode.png` | Agent Mode confirmation panel with the planned tool calls before execution |
+| `screenshots/evaluate-mode.png` | Evaluate Mode showing per-query metrics and aggregate Recall/Precision/Faithfulness scores |
 
 ---
 
